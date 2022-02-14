@@ -722,7 +722,7 @@ void PageMaterials::reload_presets()
 
     const AppConfig* app_config = wxGetApp().app_config;
     if (app_config->get("no_templates") == "0")
-        list_printer->append(_L("(TEMPLATES)"), &TEMPLATES);
+        list_printer->append(_L("(Templates)"), &TEMPLATES);
 
     //list_printer->SetLabelMarkup("<b>bald</b>");
 	for (const Preset* printer : materials->printers) {
@@ -1131,7 +1131,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
     if (add_All_item)
         list->append(_L("(All)"), &EMPTY);
     if (add_CUSTOM_item)
-        list->append(_L("(TEMPLATES)"), &TEMPLATES);
+        list->append(_L("(Templates)"), &TEMPLATES);
     for (const auto& item : prusa_profiles)
         list->append(item, &const_cast<std::string&>(item.get()));
     for (const auto& item : other_profiles)
