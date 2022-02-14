@@ -3591,30 +3591,30 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
 //!	m_treectrl->OnSetFocus();
 
     auto& old_preset = m_presets->get_edited_preset();
-    bool from_common = false;
+    bool from_template = false;
     std::string edited_printer;
     if (m_type == Preset::TYPE_FILAMENT && old_preset.vendor && old_preset.vendor->templates_profile)
     {
         //TODO: is this really the best way to get "printer_model" option of currently edited printer?
         edited_printer = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt<ConfigOptionString>("printer_model")->serialize();
         if (!edited_printer.empty())
-            from_common = true;
+            from_template = true;
         
     }
 
     if (name.empty()) {
-        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "", from_common);
+        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "", from_template);
         if (dlg.ShowModal() != wxID_OK)
             return;
         name = dlg.get_name();
-        if (from_common)
-            from_common = dlg.get_template_filament_checkbox();
+        if (from_template)
+            from_template = dlg.get_template_filament_checkbox();
     }
 
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.ini
     m_presets->save_current_preset(name, detach);
 
-    if (from_common && !edited_printer.empty())
+    if (from_template && !edited_printer.empty())
     {
         auto& new_preset = m_presets->get_edited_preset();
         std::string cond = new_preset.compatible_printers_condition();
