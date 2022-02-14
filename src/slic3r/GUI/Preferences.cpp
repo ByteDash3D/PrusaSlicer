@@ -187,11 +187,11 @@ void PreferencesDialog::build(size_t selected_tab)
 		option = Option(def, "no_defaults");
 		m_optgroup_general->append_single_option_line(option);
 
-		def.label = L("Suppress \" Common \" filament presets");
+		def.label = L("Suppress \" Template \" filament presets");
 		def.type = coBool;
-		def.tooltip = L("Suppress \" Common \" filament presets in configuration wizard and sidebar visibility.");
-		def.set_default_value(new ConfigOptionBool{ app_config->get("no_common") == "1" });
-		option = Option(def, "no_common");
+		def.tooltip = L("Suppress \" Template \" filament presets in configuration wizard and sidebar visibility.");
+		def.set_default_value(new ConfigOptionBool{ app_config->get("no_templates") == "1" });
+		option = Option(def, "no_templates");
 		m_optgroup_general->append_single_option_line(option);
 
 		def.label = L("Show incompatible print and filament presets");
@@ -576,7 +576,7 @@ void PreferencesDialog::accept(wxEvent&)
 {
 //	if (m_values.find("no_defaults") != m_values.end()
 //		warning_catcher(this, wxString::Format(_L("You need to restart %s to make the changes effective."), SLIC3R_APP_NAME));
-	bool update_filament_sidebar = (m_values.find("no_common") != m_values.end());
+	bool update_filament_sidebar = (m_values.find("no_templates") != m_values.end());
 
 
 	std::vector<std::string> options_to_recreate_GUI = { "no_defaults", "tabs_as_menu", "sys_menu_enabled" };

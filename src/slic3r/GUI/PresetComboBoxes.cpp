@@ -785,7 +785,7 @@ void PlaterPresetComboBox::update()
     bool wide_icons = selected_preset && !selected_preset->is_compatible;
 
     std::map<wxString, wxBitmap*> nonsys_presets;
-    std::map<wxString, wxBitmap*> common_presets;
+    std::map<wxString, wxBitmap*> template_presets;
 
     wxString selected_user_preset;
     wxString tooltip;
@@ -833,8 +833,8 @@ void PlaterPresetComboBox::update()
 
         const std::string name = preset.alias.empty() ? preset.name : preset.alias;
         if (preset.is_default || preset.is_system) {
-            if (preset.vendor && preset.vendor->common_profile) {
-                common_presets.emplace(get_preset_name(preset), bmp);
+            if (preset.vendor && preset.vendor->templates_profile) {
+                template_presets.emplace(get_preset_name(preset), bmp);
                 if (is_selected) {
                     selected_user_preset = get_preset_name(preset);
                     tooltip = from_u8(preset.name);
@@ -859,10 +859,10 @@ void PlaterPresetComboBox::update()
     }
 
     const AppConfig* app_config = wxGetApp().app_config;
-    if (!common_presets.empty() && app_config->get("no_common") == "0")
+    if (!template_presets.empty() && app_config->get("no_templates") == "0")
     {
-        set_label_marker(Append(separator(L("Common presets")), wxNullBitmap));
-        for (std::map<wxString, wxBitmap*>::iterator it = common_presets.begin(); it != common_presets.end(); ++it) {
+        set_label_marker(Append(separator(L("Template presets")), wxNullBitmap));
+        for (std::map<wxString, wxBitmap*>::iterator it = template_presets.begin(); it != template_presets.end(); ++it) {
             Append(it->first, *it->second);
             validate_selection(it->first == selected_user_preset);
         }

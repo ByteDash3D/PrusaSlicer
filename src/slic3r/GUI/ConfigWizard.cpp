@@ -611,7 +611,7 @@ void PagePrinters::set_run_reason(ConfigWizard::RunReason run_reason)
 
 
 const std::string PageMaterials::EMPTY;
-const std::string PageMaterials::CUSTOM = "custom";
+const std::string PageMaterials::TEMPLATES = "templates";
 
 PageMaterials::PageMaterials(ConfigWizard *parent, Materials *materials, wxString title, wxString shortname, wxString list1name)
     : ConfigWizardPage(parent, std::move(title), std::move(shortname))
@@ -721,8 +721,8 @@ void PageMaterials::reload_presets()
 	list_printer->append(_L("(All)"), &EMPTY);
 
     const AppConfig* app_config = wxGetApp().app_config;
-    if (app_config->get("no_common") == "0")
-        list_printer->append(_L("(Custom)"), &CUSTOM);
+    if (app_config->get("no_templates") == "0")
+        list_printer->append(_L("(TEMPLATES)"), &TEMPLATES);
 
     //list_printer->SetLabelMarkup("<b>bald</b>");
 	for (const Preset* printer : materials->printers) {
@@ -756,7 +756,7 @@ void PageMaterials::set_compatible_printers_html_window(const std::vector<std::s
     const auto text_clr = wxGetApp().get_label_clr_default();
     const auto text_clr_str = wxString::Format(wxT("#%02X%02X%02X"), text_clr.Red(), text_clr.Green(), text_clr.Blue());
     wxString text;
-    if (custom_shown) {
+    if (template_shown) {
         text = format_wxstr(_L("%1% visible for <b>(%2%)</b> printer are universal profiles available for all printers. These might not be compatible with your printer."), materials->technology == T_FFF ? _L("Filaments") : _L("SLA materials"), _L("Custom"));
     } else {
         wxString first_line = format_wxstr(_L("%1% marked with <b>*</b> are <b>not</b> compatible with some installed printers."), materials->technology == T_FFF ? _L("Filaments") : _L("SLA materials"));
@@ -899,7 +899,7 @@ void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected
     };
     if (!are_equal(sel_printers, sel_printers_prev)) {
 #endif
-        custom_shown = false;
+        template_shown = false;
         // Refresh type list
 		list_type->Clear();
 		list_type->append(_L("(All)"), &EMPTY);
@@ -959,12 +959,12 @@ void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected
                 });
         }
         else if (sel_printers_count > 0 && last_selected_printer == 1) {
-            //clear selection except "CUSTOM"
+            //clear selection except "TEMPLATES"
             list_printer->SetSelection(wxNOT_FOUND);
             list_printer->SetSelection(1);
             sel_printers_count = list_printer->GetSelections(sel_printers);
-            custom_shown = true;
-            materials->filter_presets(nullptr, CUSTOM, EMPTY, EMPTY, [this](const Preset* p) {
+            template_shown = true;
+            materials->filter_presets(nullptr, TEMPLATES, EMPTY, EMPTY, [this](const Preset* p) {
                 const std::string& type = this->materials->get_type(p);
                 if (list_type->find(type) == wxNOT_FOUND) {
                     list_type->append(type, &type);
@@ -1088,7 +1088,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
         const std::string& data = list->get_data(i);
         if (data == EMPTY) // do not sort <all> item 
             continue;
-        if (data == CUSTOM) {// do not sort <custom> item
+        if (data == TEMPLATES) {// do not sort <custom> item
             add_CUSTOM_item = true;
             continue;
         }
@@ -1131,7 +1131,7 @@ void PageMaterials::sort_list_data(StringList* list, bool add_All_item, bool mat
     if (add_All_item)
         list->append(_L("(All)"), &EMPTY);
     if (add_CUSTOM_item)
-        list->append(_L("(Custom)"), &CUSTOM);
+        list->append(_L("(TEMPLATES)"), &TEMPLATES);
     for (const auto& item : prusa_profiles)
         list->append(item, &const_cast<std::string&>(item.get()));
     for (const auto& item : other_profiles)
@@ -1177,7 +1177,7 @@ void PageMaterials::select_material(int i)
     const bool checked = list_profile->IsChecked(i);
 
     const std::string& alias_key = list_profile->get_data(i);
-    if (checked && custom_shown && !notification_shown) {
+    if (checked && template_shown && !notification_shown) {
         notification_shown = true;
         wxString message = _L("You have selelected universal filament. Please note that these filaments are available for all printers but are NOT certain to be compatible with your printer. Do you still wish to have this filament selected?\n(This message won't be displayed again.)");
         MessageDialog msg(this, message, _L("Notice"), wxYES_NO);
@@ -1989,7 +1989,7 @@ void ConfigWizard::priv::load_pages()
         if (any_fff_selected) { index->add_page(page_filaments); }
         // Filaments page if only custom printer is selected 
         const AppConfig* app_config = wxGetApp().app_config;
-        if (!any_fff_selected && (custom_printer_selected || custom_printer_in_bundle) && (app_config->get("no_common") == "0")) {
+        if (!any_fff_selected && (custom_printer_selected || custom_printer_in_bundle) && (app_config->get("no_templates") == "0")) {
             update_materials(T_ANY);
             index->add_page(page_filaments);
         }
@@ -2209,8 +2209,8 @@ void ConfigWizard::priv::update_materials(Technology technology)
 						filaments.add_printer(&printer);
                     }
 				}
-                // common filament bundle has no printers - filament would be never added
-                if(pair.second.vendor_profile->common_profile && pair.second.preset_bundle->printers.begin() == pair.second.preset_bundle->printers.end())
+                // template filament bundle has no printers - filament would be never added
+                if(pair.second.vendor_profile->templates_profile && pair.second.preset_bundle->printers.begin() == pair.second.preset_bundle->printers.end())
                 {
                     if (!filaments.containts(&filament)) {
                         filaments.push(&filament);
@@ -2500,12 +2500,12 @@ bool ConfigWizard::priv::check_and_install_missing_materials(Technology technolo
 				                    break;
 				                }
                                 
-                                // find if preset.first is part of the common profile (up is searching if preset.first is part of printer vendor preset)
+                                // find if preset.first is part of the templates profile (up is searching if preset.first is part of printer vendor preset)
                                 for (const auto& bp : bundles) {
-                                    if (!bp.second.preset_bundle->vendors.empty() && bp.second.preset_bundle->vendors.begin()->second.common_profile) {
-                                        const PresetCollection& common_materials = bp.second.preset_bundle->materials(technology);
-                                        const Preset* common_material = common_materials.find_preset(preset.first, false);
-                                        if(common_material) {
+                                    if (!bp.second.preset_bundle->vendors.empty() && bp.second.preset_bundle->vendors.begin()->second.templates_profile) {
+                                        const PresetCollection& template_materials = bp.second.preset_bundle->materials(technology);
+                                        const Preset* template_material = template_materials.find_preset(preset.first, false);
+                                        if (template_material) {
                                             has_material = true;
                                             break;
                                         }

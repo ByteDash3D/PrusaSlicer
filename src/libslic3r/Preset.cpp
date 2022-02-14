@@ -146,9 +146,9 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
         res.changelog_url = changelog_url->second.data();
     }
 
-    const auto common_profile = vendor_section.find("common_profile");
-    if (common_profile != vendor_section.not_found()) {
-        res.common_profile = common_profile->second.data() == "1";
+    const auto templates_profile = vendor_section.find("templates_profile");
+    if (templates_profile != vendor_section.not_found()) {
+        res.templates_profile = templates_profile->second.data() == "1";
     }
 
     if (! load_all) {
@@ -341,8 +341,8 @@ std::string Preset::label() const
 
 bool is_compatible_with_print(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer)
 {
-    // common_profile vendor profiles should be decided as same vendor profiles
-	if (preset.vendor != nullptr && preset.vendor != active_printer.vendor && !preset.vendor->common_profile)
+    // templates_profile vendor profiles should be decided as same vendor profiles
+	if (preset.vendor != nullptr && preset.vendor != active_printer.vendor && !preset.vendor->templates_profile)
 		// The current profile has a vendor assigned and it is different from the active print's vendor.
 		return false;
     auto &condition             = preset.preset.compatible_prints_condition();
@@ -364,8 +364,8 @@ bool is_compatible_with_print(const PresetWithVendorProfile &preset, const Prese
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config)
 {
-    // common_profile vendor profiles should be decided as same vendor profiles
-	if (preset.vendor != nullptr && preset.vendor != active_printer.vendor && !preset.vendor->common_profile)
+    // templates_profile vendor profiles should be decided as same vendor profiles
+	if (preset.vendor != nullptr && preset.vendor != active_printer.vendor && !preset.vendor->templates_profile)
 		// The current profile has a vendor assigned and it is different from the active print's vendor.
 		return false;
     auto &condition               = preset.preset.compatible_printers_condition();
@@ -1090,7 +1090,7 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
     if (opt)
         config.set_key_value("num_extruders", new ConfigOptionInt((int)static_cast<const ConfigOptionFloats*>(opt)->values.size()));
     bool some_compatible = false;
-    std::vector<size_t> indexes_of_common_presets;
+    std::vector<size_t> indices_of_template_presets;
     for (size_t idx_preset = m_num_default_presets; idx_preset < m_presets.size(); ++ idx_preset) {
         bool    selected        = idx_preset == m_idx_selected;
         Preset &preset_selected = m_presets[idx_preset];
@@ -1107,23 +1107,23 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
             m_idx_selected = size_t(-1);
         if (selected)
             preset_selected.is_compatible = preset_edited.is_compatible;
-        if (preset_edited.vendor && preset_edited.vendor->common_profile) {
-            indexes_of_common_presets.push_back(idx_preset);
+        if (preset_edited.vendor && preset_edited.vendor->templates_profile) {
+            indices_of_template_presets.push_back(idx_preset);
         }
     }
-    // filter out common generic profiles where profile with same alias and compability exists
-    if (!indexes_of_common_presets.empty()) {
+    // filter out template profiles where profile with same alias and compability exists
+    if (!indices_of_template_presets.empty()) {
         for (size_t idx_preset = m_num_default_presets; idx_preset < m_presets.size(); ++idx_preset) {
-            if (m_presets[idx_preset].vendor && !m_presets[idx_preset].vendor->common_profile && m_presets[idx_preset].is_compatible) {
+            if (m_presets[idx_preset].vendor && !m_presets[idx_preset].vendor->templates_profile && m_presets[idx_preset].is_compatible) {
                 std::string preset_alias = m_presets[idx_preset].alias;
-                for (size_t idx_idx = 0; idx_idx < indexes_of_common_presets.size(); ++idx_idx) {
-                    size_t idx_common = indexes_of_common_presets[idx_idx];
-                    if (m_presets[idx_common].alias == preset_alias) {
-                        // unselect selected common filament if there is non-common alias compatible
-                        if (idx_common == m_idx_selected && (unselect_if_incompatible == PresetSelectCompatibleType::Always || unselect_if_incompatible == PresetSelectCompatibleType::OnlyIfWasCompatible)) {
+                for (size_t idx_in_templates = 0; idx_in_templates < indices_of_template_presets.size(); ++idx_in_templates) {
+                    size_t idx_of_template_in_presets = indices_of_template_presets[idx_in_templates];
+                    if (m_presets[idx_of_template_in_presets].alias == preset_alias) {
+                        // unselect selected template filament if there is non-template alias compatible
+                        if (idx_of_template_in_presets == m_idx_selected && (unselect_if_incompatible == PresetSelectCompatibleType::Always || unselect_if_incompatible == PresetSelectCompatibleType::OnlyIfWasCompatible)) {
                             m_idx_selected = size_t(-1);
                         }
-                        m_presets[idx_common].is_compatible = false;
+                        m_presets[idx_of_template_in_presets].is_compatible = false;
                         break;
                     }
                 }

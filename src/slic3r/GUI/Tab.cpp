@@ -3593,7 +3593,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
     auto& old_preset = m_presets->get_edited_preset();
     bool from_common = false;
     std::string edited_printer;
-    if (m_type == Preset::TYPE_FILAMENT && old_preset.vendor && old_preset.vendor->common_profile)
+    if (m_type == Preset::TYPE_FILAMENT && old_preset.vendor && old_preset.vendor->templates_profile)
     {
         //TODO: is this really the best way to get "printer_model" option of currently edited printer?
         edited_printer = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt<ConfigOptionString>("printer_model")->serialize();

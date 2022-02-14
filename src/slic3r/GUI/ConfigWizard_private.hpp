@@ -139,10 +139,10 @@ struct Materials
 		    if (((printer == nullptr && printer_name == PageMaterials::EMPTY) || (printer != nullptr && is_compatible_with_printer(PresetWithVendorProfile(prst, prst.vendor), PresetWithVendorProfile(prntr, prntr.vendor)))) &&
 			    (type.empty() || get_type(preset) == type) &&
 				(vendor.empty() || get_vendor(preset) == vendor) &&
-                !prst.vendor->common_profile) {
+                !prst.vendor->templates_profile) {
 
 				cb(preset);
-			} else if ((printer == nullptr && printer_name == PageMaterials::CUSTOM) && prst.vendor->common_profile &&
+			} else if ((printer == nullptr && printer_name == PageMaterials::TEMPLATES) && prst.vendor->templates_profile &&
                 (type.empty() || get_type(preset) == type) &&
                 (vendor.empty() || get_vendor(preset) == vendor)) {
                 cb(preset);
@@ -348,9 +348,9 @@ struct PageMaterials: ConfigWizardPage
     std::string empty_printers_label;
     bool first_paint = { false };
     static const std::string EMPTY;
-    static const std::string CUSTOM;
-    // notify user first time they choose common profile
-    bool custom_shown = { false }; 
+    static const std::string TEMPLATES;
+    // notify user first time they choose template profile
+    bool template_shown = { false }; 
     bool notification_shown = { false };
     int last_hovered_item = { -1 } ;
 
