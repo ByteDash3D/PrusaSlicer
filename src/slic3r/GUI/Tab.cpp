@@ -3597,7 +3597,9 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
     {
         //TODO: is this really the best way to get "printer_model" option of currently edited printer?
         edited_printer = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt<ConfigOptionString>("printer_model")->serialize();
-        from_common = true;
+        if (!edited_printer.empty())
+            from_common = true;
+        
     }
 
     if (name.empty()) {
@@ -3606,9 +3608,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
             return;
         name = dlg.get_name();
         if (from_common)
-        {
             from_common = dlg.get_template_filament_checkbox();
-        }
     }
 
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.ini
