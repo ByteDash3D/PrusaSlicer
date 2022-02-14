@@ -564,6 +564,7 @@ struct ConfigWizard::priv
     bool custom_printer_in_bundle { false }; // Older custom printer already exists when wizard starts
     // Set to true if there are none FFF printers on the main FFF page. If true, only SLA printers are shown (not even custum printers)
     bool only_sla_mode { false };
+    bool template_profile_selected { false }; // This bool has one purpose - to tell that template profile should be installed if its not (because it cannot be added to appconfig)
 
     wxScrolledWindow *hscroll = nullptr;
     wxBoxSizer *hscroll_sizer = nullptr;

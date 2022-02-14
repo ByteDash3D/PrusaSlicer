@@ -2075,6 +2075,7 @@ void ConfigWizard::priv::load_vendors()
     for (PrinterTechnology technology : { ptFFF, ptSLA }) {
     	const std::string &section_name = (technology == ptFFF) ? AppConfig::SECTION_FILAMENTS : AppConfig::SECTION_MATERIALS;
 		std::map<std::string, std::string> section_new;
+        bool has_template = false;
 		if (app_config->has_section(section_name)) {
 			const std::map<std::string, std::string> &section_old = app_config->get_section(section_name);
             for (const auto& material_name_and_installed : section_old)
@@ -2505,7 +2506,7 @@ bool ConfigWizard::priv::check_and_install_missing_materials(Technology technolo
                                     if (!bp.second.preset_bundle->vendors.empty() && bp.second.preset_bundle->vendors.begin()->second.templates_profile) {
                                         const PresetCollection& template_materials = bp.second.preset_bundle->materials(technology);
                                         const Preset* template_material = template_materials.find_preset(preset.first, false);
-                                        if (template_material) {
+                                        if (template_material && is_compatible_with_printer(PresetWithVendorProfile(*template_material, &bp.second.preset_bundle->vendors.begin()->second), PresetWithVendorProfile(printer, nullptr))) {
                                             has_material = true;
                                             break;
                                         }
@@ -2519,6 +2520,23 @@ bool ConfigWizard::priv::check_and_install_missing_materials(Technology technolo
 			            if (! has_material)
 			            	printer_models_without_material.insert(printer_model);
 			        }
+                }
+            }
+        }
+        // template_profile_selected check
+        template_profile_selected = false;
+        for (const auto& bp : bundles) {
+            if (!bp.second.preset_bundle->vendors.empty() && bp.second.preset_bundle->vendors.begin()->second.templates_profile) {
+                for (const auto& preset : appconfig_presets) {
+                    const PresetCollection& template_materials = bp.second.preset_bundle->materials(technology);
+                    const Preset* template_material = template_materials.find_preset(preset.first, false);
+                    if (template_material){
+                        template_profile_selected = true;
+                        break;
+                    }
+                }
+                if (template_profile_selected) {
+                    break;
                 }
             }
         }
@@ -2675,7 +2693,13 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
         }
 
         const auto vendor = enabled_vendors.find(pair.first);
-        if (vendor == enabled_vendors.end()) { continue; }
+        if (vendor == enabled_vendors.end() && ((pair.second.vendor_profile && !pair.second.vendor_profile->templates_profile) || !pair.second.vendor_profile) ) { continue; }
+
+        if (template_profile_selected && pair.second.vendor_profile && pair.second.vendor_profile->templates_profile && vendor == enabled_vendors.end()) {
+            // Templates vendor needs to be installed
+            install_bundles.emplace_back(pair.first);
+            continue;
+        }
 
         size_t size_sum = 0;
         for (const auto &model : vendor->second) { size_sum += model.second.size(); }
