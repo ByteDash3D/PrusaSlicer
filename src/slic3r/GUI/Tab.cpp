@@ -3590,15 +3590,44 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach)
     // focus currently.is there anything better than this ?
 //!	m_treectrl->OnSetFocus();
 
+    auto& old_preset = m_presets->get_edited_preset();
+    bool from_common = false;
+    std::string edited_printer;
+    if (m_type == Preset::TYPE_FILAMENT && old_preset.vendor && old_preset.vendor->common_profile)
+    {
+        //TODO: is this really the best way to get "printer_model" option of currently edited printer?
+        edited_printer = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt<ConfigOptionString>("printer_model")->serialize();
+        from_common = true;
+    }
+
     if (name.empty()) {
-        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "");
+        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "", from_common);
         if (dlg.ShowModal() != wxID_OK)
             return;
         name = dlg.get_name();
+        if (from_common)
+        {
+            from_common = dlg.get_template_filament_checkbox();
+        }
     }
 
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.ini
     m_presets->save_current_preset(name, detach);
+
+    if (from_common && !edited_printer.empty())
+    {
+        auto& new_preset = m_presets->get_edited_preset();
+        std::string cond = new_preset.compatible_printers_condition();
+        if (!cond.empty())
+            cond += " and ";
+        cond += "printer_model == \""+edited_printer+"\"";
+        new_preset.config.set("compatible_printers_condition", cond);
+        new_preset.save();
+        //TODO actualize text field compatible_printers_condition 
+        m_presets->save_current_preset(name, detach);
+        BOOST_LOG_TRIVIAL(error) << "ereh " << cond;
+    }
+
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
     // If saving the preset changes compatibility with other presets, keep the now incompatible dependent presets selected, however with a "red flag" icon showing that they are no more compatible.
     m_preset_bundle->update_compatible(PresetSelectCompatibleType::Never);
